@@ -10,12 +10,18 @@ find_package ( FLEX REQUIRED )
 find_package ( ZLIB REQUIRED )
 find_package ( HiRedis )
 
-option( DEBUG "Debug build" OFF )
+set ( CMAKE_C_STANDARD 99 )
 
+if ( UNIX )
+  add_definitions ( -D__STDC_FORMAT_MACROS )
+endif ( UNIX )
+
+option( DEBUG "Debug build" OFF )
+set ( CMAKE_C_STANDARD 99 )
 if ( DEBUG )
-  add_definitions( -DDEBUG )
+  add_definitions ( -DDEBUG )
   message ( STATUS "Debug build" )
-else(DEBUG)
+else ( DEBUG )
   message ( STATUS "Release build" )
 endif ( DEBUG )
 
@@ -27,7 +33,8 @@ include_directories ( ${ZLIB_INCLUDE_DIRS} )
 protobuf_generate_cpp ( PROTO_SERIAL_SRCS  PROTO_HDRS src/procs/protobuf/wsserial.proto )
 protobuf_generate_cpp ( PROTO_SRCS  PROTO_HDRS src/procs/protobuf/wsproto.proto )
 
-set( WS_PROTO ${PROTO_SRCS} ${PROTO_SERIAL_SRCS} )
+set ( WS_PROTO ${PROTO_SRCS} ${PROTO_SERIAL_SRCS} )
+set ( WS_PROTO_LIB ${PROTOBUF_LIBRARIES} ${ZLIB_LIBRARIES} )
 
 FLEX_TARGET ( GraphLex src/lib/graph.l ${CMAKE_CURRENT_BINARY_DIR}/graph.lex.cc COMPILE_FLAGS "-Ppg" )
 BISON_TARGET ( GraphTab src/lib/graph.y ${CMAKE_CURRENT_BINARY_DIR}/graph.tab.cc COMPILE_FLAGS "-d -ppg" )
@@ -62,14 +69,13 @@ set (WSLIBSRC
 set ( WSSRC src/util/waterslide.c )
 
 add_library ( wslib SHARED ${WSLIBSRC} )
-#add_library ( proto_in SHARED src/procs/proc_wsproto_in.cc ${PROTO_SRCS} ${PROTO_SERIAL_SRCS} )
-add_library ( proto_out SHARED src/procs/proc_wsproto_out.cc ${PROTO_SRCS} ${PROTO_HDRS} ${PROTO_SERIAL_SRCS} ${PROTO_SERIAL_HDRS} )
 add_executable ( ws ${WSSRC} )
 
 target_link_libraries ( ws ${PROTOBUF_LIBRARIES} ${ZLIB_LIBRARIES} wslib )
 target_link_libraries ( wslib ${PROTOBUF_LIBRARIES} ${ZLIB_LIBRARIES} )
-#target_link_libraries ( proto_in ${PROTOBUF_LIBRARIES} ${ZLIB_LIBRARIES} wslib )
-target_link_libraries ( proto_out ${PROTOBUF_LIBRARIES} ${ZLIB_LIBRARIES} wslib )
+
+set_property ( TARGET ws PROPERTY CXX_STANDARD 11 )
+set_property ( TARGET wslib PROPERTY CXX_STANDARD 11 )
 
 function( Kid name file extrasrc extralib )
   message ( STATUS "Configure Kid ${name} ${file}" )
@@ -94,6 +100,9 @@ endfunction()
 if ( HIREDIS_FOUND )
   Kids ( redis )
 endif ( HIREDIS_FOUND )
+
+Kid ( proto_in "src/procs/proc_wsproto_in.cc" ${WS_PROTO} ${WSPROTO_LIB} )
+Kid ( proto_out "src/procs/proc_wsproto_out.cc" ${WS_PROTO} ${WSPROTO_LIB} )
 
 #todo add RE2
 #Kid ( re2 "src/procs/proc_re2.cc" ${WS_PROTO} "" )
