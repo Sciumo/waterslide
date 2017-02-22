@@ -127,7 +127,7 @@ static inline wscalcValue makeWSCalcValueString(wsdata_t *d)
      return res;
 }
 
-static inline wscalcValue makeWSCalcValueStringRaw(char *str, int len)
+static inline wscalcValue makeWSCalcValueStringRaw(const char *str, int len)
 {
      char *buf = NULL;
      int dlen = 0;
@@ -206,9 +206,10 @@ extern void wscalc_destroyTable(void *table);
    so that the grammar knows how to assign and
    retrieve variable values
 */
+/*
 #ifndef _WSUTIL
 wscalcValue (*getVarValue)(void *, void *, int operation);
-int (*setVarValue)(wscalcValue, int, void *, void *); 
+int (*setVarValue)(wscalcValue, int, void *, void *);
 void (*destroyVar)(void *);
 void (*flushVar)(void *);
 uint8_t (*nameExists)(void *, void *);
@@ -227,6 +228,7 @@ void * initializeLabelAssignment;
 void * wsflush;
 void * assignLabel;
 #endif
+*/
 
 #ifdef __cplusplus
 CPP_CLOSE

@@ -55,9 +55,29 @@ int user_threadid_zero_exists = 0;
 uint32_t * src_threads;
 extern uint32_t work_size, num_src_threads;
 
+#if defined(__APPLE__)
+#include <errno.h>
+#include <libproc.h>
+
+
+char *osxRealPath(){
+  uint32_t pathSize = PROC_PIDPATHINFO_MAXSIZE;
+  char *osxPath = malloc(pathSize);
+
+  pid_t pid = getpid();
+  int ret = proc_pidpath (pid, osxPath, pathSize);
+  if( ret > 0 ){
+//    fprintf(stderr, "pid executable path %s\n", osxPath);
+    return osxPath;
+  }
+  free(osxPath);
+  fprintf(stderr, "Unable to retrieve executable path: %s\n", strerror(errno));
+  return 0;
+}
+#endif
 
 // this code is to implemented to be machine architecture-specific
-// (for performance purposes). 
+// (for performance purposes).
 // TODO: replace the calloc's with the right allocation of memory to
 //       make memory placement optimal for the indicated CPU
 static void * ws_init_calloc(uint32_t cpu_id, size_t nmemb, size_t size) {
@@ -68,10 +88,10 @@ static void ws_free(void *ptr, size_t size) {
      free(ptr);
 }
 
-static ws_proc_instance_t * ws_new_proc_instance(mimo_t * mimo, const char * name, int argc, 
+static ws_proc_instance_t * ws_new_proc_instance(mimo_t * mimo, const char * name, int argc,
                                           char * const * argv) {
 
-     ws_proc_instance_t * inst = 
+     ws_proc_instance_t * inst =
           (ws_proc_instance_t *)calloc(1,sizeof(ws_proc_instance_t));
      if (!inst) {
           error_print("failed ws_new_proc_instance calloc of inst");
@@ -94,7 +114,7 @@ static ws_proc_instance_t * ws_new_proc_instance(mimo_t * mimo, const char * nam
           }
           return inst;
      }
-     
+
      //attach to list of instances..
      if (mimo->proc_instance_head == NULL) {
           mimo->proc_instance_head = inst;
@@ -119,7 +139,7 @@ static int ws_new_mimo_source_edge(mimo_t * mimo, mimo_source_t * src,
      if (!mimo->edges) {
           mimo->edges = queue_init();
      }
-     ws_proc_edge_t * edge = 
+     ws_proc_edge_t * edge =
           (ws_proc_edge_t *)calloc(1, sizeof(ws_proc_edge_t));
      if (!edge) {
           error_print("failed ws_new_mimo_source_edge calloc of edge");
@@ -138,7 +158,7 @@ static int ws_new_mimo_source_edge(mimo_t * mimo, mimo_source_t * src,
      return 1;
 }
 
-//TODO:  UNFINISHED FUNCTION 
+//TODO:  UNFINISHED FUNCTION
 static int ws_new_mimo_sink_edge(mimo_t * mimo, ws_proc_instance_t * src,
                           mimo_sink_t * dst, const char * src_label) {
 
@@ -149,7 +169,7 @@ static int ws_new_mimo_sink_edge(mimo_t * mimo, ws_proc_instance_t * src,
      if (!mimo->edges) {
           mimo->edges = queue_init();
      }
-     ws_proc_edge_t * edge = 
+     ws_proc_edge_t * edge =
           (ws_proc_edge_t *)calloc(1, sizeof(ws_proc_edge_t));
      if (!edge) {
           error_print("failed ws_new_mimo_sink_edge calloc of edge");
@@ -168,7 +188,7 @@ static int ws_new_mimo_sink_edge(mimo_t * mimo, ws_proc_instance_t * src,
 
 static void ws_new_edge(mimo_t * mimo, ws_proc_instance_t * src,
                  ws_proc_instance_t * dst, const char * port, const char * src_label,
-                 int thread_trans, int thread_context, 
+                 int thread_trans, int thread_context,
                  int twoD_placement) {
 
      if (!src) {
@@ -178,7 +198,7 @@ static void ws_new_edge(mimo_t * mimo, ws_proc_instance_t * src,
      if (!mimo->edges) {
           mimo->edges = queue_init();
      }
-     ws_proc_edge_t * edge = 
+     ws_proc_edge_t * edge =
           (ws_proc_edge_t *)calloc(1, sizeof(ws_proc_edge_t));
      if (!edge) {
           error_print("failed ws_new_edge calloc of edge");
@@ -226,7 +246,7 @@ static int add_uniq_sub(ws_subscriber_t ** list, ws_subscriber_t * sub) {
      return 1;
 }
 
-static int ws_init_instance_input(mimo_t * mimo, ws_outtype_t * ocursor, 
+static int ws_init_instance_input(mimo_t * mimo, ws_outtype_t * ocursor,
                            wslabel_t * port, wslabel_t * src_label,
                            ws_proc_instance_t * dst, ws_proc_instance_t * src,
                            uint8_t flushmon) {
@@ -240,7 +260,7 @@ static int ws_init_instance_input(mimo_t * mimo, ws_outtype_t * ocursor,
      if (src_label && (ocursor->label != src_label)) {
           if (ocursor->label) {
                if (mimo->verbose) {
-                    status_print("mismatch resolve label %s with %s", 
+                    status_print("mismatch resolve label %s with %s",
                                  src_label->name,
                                  ocursor->label ? ocursor->label->name: "null");
                }
@@ -251,10 +271,10 @@ static int ws_init_instance_input(mimo_t * mimo, ws_outtype_t * ocursor,
      for (ptcursor = dst->input_list.head; ptcursor; ptcursor = ptcursor->next) {
           if ((ptcursor->dtype == ocursor->dtype) && (ptcursor->port == port)) {
                ptfound = 1;
-               dprint("input exist added sub %s, %s", dst->name, 
+               dprint("input exist added sub %s, %s", dst->name,
                       ocursor->dtype->name);
                dprint("ptcursor input index %u", ptcursor->input_index);
-               sub = (ws_subscriber_t*)ws_init_calloc(dst->thread_id, 1, 
+               sub = (ws_subscriber_t*)ws_init_calloc(dst->thread_id, 1,
                                                       sizeof(ws_subscriber_t));
                if (!sub) {
                     error_print("failed ws_init_instance_input calloc of sub");
@@ -318,7 +338,7 @@ static int ws_init_instance_input(mimo_t * mimo, ws_outtype_t * ocursor,
                                                     &dst->output_type_list,
                                                     dst->input_index,
                                                     &mimo->datalists);
-          
+
 //fprintf(stderr,"proc_input_set_f returned proc_func %p dst->name %s ocursor->dtype %p\n",proc_func,dst->name,ocursor->dtype);
           if (!proc_func) {
                if (mimo->input_validate && !dst->input_valid) {
@@ -333,7 +353,7 @@ static int ws_init_instance_input(mimo_t * mimo, ws_outtype_t * ocursor,
                     }
                }
           }
-          
+
           //this kid has valid input...
           else {
                rtn = 1;
@@ -343,9 +363,9 @@ static int ws_init_instance_input(mimo_t * mimo, ws_outtype_t * ocursor,
                     dst->input_valid = 1;
                }
 
-               dprint("new input added sub %s, %s", dst->name, 
+               dprint("new input added sub %s, %s", dst->name,
                       ocursor->dtype->name);
-               sub = (ws_subscriber_t*)ws_init_calloc(dst->thread_id, 1, 
+               sub = (ws_subscriber_t*)ws_init_calloc(dst->thread_id, 1,
                                                       sizeof(ws_subscriber_t));
                if (!sub) {
                     error_print("failed ws_init_instance_input calloc of sub");
@@ -383,7 +403,7 @@ static int ws_init_instance_input(mimo_t * mimo, ws_outtype_t * ocursor,
 
                //attach input type.
                ws_proctype_t * pt =
-                    (ws_proctype_t*)ws_init_calloc(dst->thread_id, 1, 
+                    (ws_proctype_t*)ws_init_calloc(dst->thread_id, 1,
                                                    sizeof(ws_proctype_t));
                if (!pt) {
                     error_print("failed ws_init_instance_input calloc of pt");
@@ -410,7 +430,7 @@ static void ws_init_flush(mimo_t * mimo, ws_proc_instance_t * inst,
      if (!inst->flush_register) {
           inst->flush_register = 1;
           if (ws_init_instance_input(mimo, &mimo->flush.outtype_flush,
-                                     NULL, NULL, inst, src_inst, 1) != 0) { 
+                                     NULL, NULL, inst, src_inst, 1) != 0) {
 
                if (mimo->verbose) {
                     status_print("registered flusher on %s", inst->name);
@@ -434,12 +454,12 @@ static void ws_init_flush(mimo_t * mimo, ws_proc_instance_t * inst,
           }
      }
      else {
-          // XXX: this is the situation where we've arrive at an already-visited kid in a 
+          // XXX: this is the situation where we've arrive at an already-visited kid in a
           //      breath-first search of a graph, so we desire to 'correct' the flush order
-          //      by pushing this kid to be the current last flushed since another kid is 
-          //      likely to feed it data during flushes.  In other words, take two actions: 
-          //      1. ensure that the kid (inst) has a flusher and 
-          //      2. if the kid has a flusher, then move it to the last position (i.e., 
+          //      by pushing this kid to be the current last flushed since another kid is
+          //      likely to feed it data during flushes.  In other words, take two actions:
+          //      1. ensure that the kid (inst) has a flusher and
+          //      2. if the kid has a flusher, then move it to the last position (i.e.,
           //         move it to the index of (mimo->flush.cnt-1) in mimo->flush.sub array
           if(mimo->flush.cnt <= 1 || inst == mimo->flush.sub[mimo->flush.cnt-1]->proc_instance) {
                // we are where we should be, simply return
@@ -451,7 +471,7 @@ static void ws_init_flush(mimo_t * mimo, ws_proc_instance_t * inst,
           for(i=0; i < mimo->flush.cnt; i++) {
                if(inst == mimo->flush.sub[i]->proc_instance) {
                     if (mimo->verbose) {
-                         status_print("changing registered flush order: moving '%s.%d' to the end", 
+                         status_print("changing registered flush order: moving '%s.%d' to the end",
                                  inst->name, inst->version);
                     }
                     break;
@@ -467,7 +487,7 @@ static void ws_init_flush(mimo_t * mimo, ws_proc_instance_t * inst,
           //       or should we also keep track of the series of subsequent subscribers the kid has
           //       (complicated).  What about what to do if we had cycles in the graph???
           ws_subscriber_t * cursub = mimo->flush.sub[i];
-          for(j=i; j < mimo->flush.cnt-1; j++) { 
+          for(j=i; j < mimo->flush.cnt-1; j++) {
                // slide all subscribers to the their left
                mimo->flush.sub[j] = mimo->flush.sub[j+1];
           }
@@ -476,7 +496,7 @@ static void ws_init_flush(mimo_t * mimo, ws_proc_instance_t * inst,
      }
 }
 
-static int ws_init_datatype_dst(mimo_t * mimo, ws_proc_instance_t * src, 
+static int ws_init_datatype_dst(mimo_t * mimo, ws_proc_instance_t * src,
                          ws_outlist_t * olist, ws_proc_edge_t *edge) {
 
      q_node_t * qcursor;
@@ -486,10 +506,10 @@ static int ws_init_datatype_dst(mimo_t * mimo, ws_proc_instance_t * src,
      if (!olist->outtype_q) {
           dprint("null outq");
           return 0;
-     }     
+     }
      for (qcursor = olist->outtype_q->head; qcursor; qcursor= qcursor->next) {
           ocursor= (ws_outtype_t*)qcursor->data;
-          
+
           if (ws_init_instance_input(mimo, ocursor, edge->port,
                                         edge->src_label,
                                         edge->dst, src, 0) > 0) {
@@ -603,7 +623,7 @@ static int ws_init_from_sources(mimo_t * mimo) {
           }
 
      }
-     
+
      //init from proc_sources
      ws_source_list_t * cursor;
      for (cursor = mimo->proc_sources; cursor; cursor = cursor->next) {
@@ -712,7 +732,7 @@ int ws_init_proc_graph(mimo_t * mimo) {
                             cursor->name);
                     return 0;
                }
-               
+
                //assign a unique id to each kid
                mimo->kid_uid++;
                cursor->kid.uid = mimo->kid_uid;
@@ -727,8 +747,8 @@ int ws_init_proc_graph(mimo_t * mimo) {
 
                // init the module...
                if (mimo->verbose) {
-                    fprintf(stderr,"initializing %s.%d, kid_uid %u, thread_id %u\n", 
-                            cursor->name, cursor->version, cursor->kid.uid, 
+                    fprintf(stderr,"initializing %s.%d, kid_uid %u, thread_id %u\n",
+                            cursor->name, cursor->version, cursor->kid.uid,
                             cursor->thread_id);
                }
                optind = 1; // reset argument reader...
@@ -767,7 +787,7 @@ int ws_init_proc_graph(mimo_t * mimo) {
                     }
                }
           }
-     } 
+     }
 
      // NOTE:  sync up here between preprocessing phases
      BARRIER_WAIT(barrier1);
@@ -843,7 +863,7 @@ int ws_init_proc_graph(mimo_t * mimo) {
 
                if (!cursor->input_valid) {
                     graph_invalid = 1;
-                    error_print("no valid input to kid '%s.%d'", 
+                    error_print("no valid input to kid '%s.%d'",
                                 cursor->name, cursor->version);
                }
           }
@@ -866,7 +886,7 @@ static int collapse_edges(nhqueue_t *newedges, parse_edge_t * srcedge,
      parse_edge_t * dstedge;
      parse_edge_t * newedge;
      q_node_t * qnode;
-     
+
      for (qnode = dstedges->head; qnode; qnode = qnode->next) {
           dstedge = (parse_edge_t *)qnode->data;
           newedge = malloc(sizeof(parse_edge_t));
@@ -962,8 +982,8 @@ static void local_init_parse_proc(void * vdata, void * vmimo) {
 
      mimo_t * mimo = (mimo_t*)vmimo;
      parse_node_proc_t * proc = (parse_node_proc_t*)vdata;
- 
-     if (!proc->mimo_source || !proc->mimo_sink) { 
+
+     if (!proc->mimo_source || !proc->mimo_sink) {
           proc->pinst = ws_new_proc_instance(mimo, proc->name,
                                              proc->argc, proc->argv);
 
@@ -978,13 +998,13 @@ void local_free_parse_vars(void * vdata, void * vmimo) {
      if (var->name) {
           free((char*)var->name);
      }
- 
+
 }
 
 void local_free_parse_proc(void * vdata, void * vmimo) {
 
      parse_node_proc_t * proc = (parse_node_proc_t*)vdata;
- 
+
      int i;
      for (i = 0; i < proc->argc; i++) {
           if (proc->argv[i]) {
@@ -994,10 +1014,10 @@ void local_free_parse_proc(void * vdata, void * vmimo) {
      if (proc->name) {
           free((char*)proc->name);
      }
-     if (proc->argv) { 
+     if (proc->argv) {
           free(proc->argv);
      }
-     if (proc->pinst) { 
+     if (proc->pinst) {
           free(proc->pinst);
      }
 }
@@ -1018,7 +1038,7 @@ int load_parsed_graph(mimo_t * mimo, parse_graph_t * pg) {
      listhash_scour(pg->procs, local_init_parse_proc, mimo);
 
      if(NULL == pg->edges->head) {
-          // then, we have a graph with no edge, i.e., a graph with only 
+          // then, we have a graph with no edge, i.e., a graph with only
           // one kid so we'll set user_threadid_zero_exists as we will
           // never call ws_new_edge below
           user_threadid_zero_exists = 1;
@@ -1043,7 +1063,7 @@ int load_parsed_graph(mimo_t * mimo, parse_graph_t * pg) {
                }
                else if (dst->mimo_sink) {
                     if (!ws_new_mimo_sink_edge(mimo,
-                                proc->pinst,          
+                                proc->pinst,
                                 mimo_lookup_sink(mimo, dst->name),
                                 edge->src_label)) {
                          return 0;
@@ -1060,7 +1080,7 @@ int load_parsed_graph(mimo_t * mimo, parse_graph_t * pg) {
           default:
                error_print("invalid edge to init");
           }
-     }	
+     }
 
      // remove the redundant creation of additional thread
      REARRANGE_AND_REMOVE_INVALID_USERID(mimo);

@@ -1,0 +1,4 @@
+#the following is a config file for waterslide (use with the -F option)
+csv_in FIELD1 FIELD2 -> $cin ; $cin | match -R FOO -> $match
+$match | tuplehash -L PAIR FIELD1 FIELD2 -> $pair
+$pair | uniq PAIR -> $upair

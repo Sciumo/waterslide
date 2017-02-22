@@ -46,6 +46,16 @@ char proc_name[]       = PROC_NAME;
 char proc_purpose[]    = "simple math operations";
 char *proc_synopsis[]   = { "calc [-F] [-M <table size>] [-N] [-R]", NULL };
 
+wscalcValue (*getVarValue)(void *, void *, int operation) = 0;
+int (*setVarValue)(wscalcValue, int, void *, void *) = 0;
+void (*destroyVar)(void *) = 0;
+void (*flushVar)(void *) = 0;
+uint8_t (*nameExists)(void *, void *) = 0;
+void *(*initializeVarReference)(char *, char *, void *) = 0;
+void *(*initializeLabelAssignment)(char *, char *, void *) = 0;
+int (*assignLabel)(void *, void *) = 0;
+void (*wsflush)(void *) = 0;
+
 proc_option_t proc_opts[] = {
      /*  'option character', "long option string", "option argument",
 	 "option description", <allow multiple>, <required>*/
@@ -148,7 +158,7 @@ char proc_nonswitch_opts[] = "EXPRESSION";
    Selective suppression of local keyed variables needs to be
    implemented to make sure that only LENAVG gets flushed out at the end
    --------------------------------
-   calc -N -R '#LENCOUNT[CSTAT_LENGTH]++; #LENSUM[CSTAT_LENGTH]+=CSTAT_LENGTH; #LENAVG[CSTAT_LENGTH]=#LENSUM[CSTAT_LENGTH]/#LENCOUNT[CSTAT_LENGTH]'   
+   calc -N -R '#LENCOUNT[CSTAT_LENGTH]++; #LENSUM[CSTAT_LENGTH]+=CSTAT_LENGTH; #LENAVG[CSTAT_LENGTH]=#LENSUM[CSTAT_LENGTH]/#LENCOUNT[CSTAT_LENGTH]'
 */
 
 static int proc_flush(void *, wsdata_t*, ws_doutput_t*, int);
@@ -163,7 +173,7 @@ typedef struct _varReference {
      void *reference;
 } varReference;
 
-#define VARTYPE_LABEL 1 
+#define VARTYPE_LABEL 1
 #define VARTYPE_LOCAL 2
 #define VARTYPE_LOCALINDEXED 3
 
@@ -184,7 +194,7 @@ typedef struct _proc_instance_t {
      wsLocalData_t *scriptSpecifiedFail;
      int keepOnlyKey;
      char * wscalc;
-     wscalcPart *compiledScript;     
+     wscalcPart *compiledScript;
      ws_doutput_t * dout;
      wslabel_t * label;
      ws_outtype_t * outtype_tuple;
@@ -207,7 +217,7 @@ typedef struct _varHashTable_data_t {
 typedef struct _wsLocalKeyedData_t {
      wslabel_t *searchLabel;
      wslabel_t *assignLabel;
-     
+
      proc_instance_t *proc;
      stringhash5_t *hashTable;
      int refcount;
@@ -243,7 +253,7 @@ static void last_destroy(void *vdata, void *vproc) {
                tuple_member_create_double(outTuple, *((double*)kd->data->head->data), lkData->assignLabel);
                ws_set_outdata(outTuple, lkData->proc->outtype_tuple, lkData->proc->dout);
           }
-          if (!lkData->proc->keepOnlyKey) {               
+          if (!lkData->proc->keepOnlyKey) {
                wsdata_delete(outTuple);
           }
      }
@@ -294,7 +304,7 @@ void destroyVarRefs(void *compileTimeToken) {
 void flushVarRefs(void *compileTimeToken) {
      varReference *ref = (varReference*)compileTimeToken;
      wsLocalKeyedData_t *localKeyedData;
-     
+
      switch (ref->type) {
      case VARTYPE_LOCAL:
           //do nothing
@@ -323,8 +333,8 @@ void WSFlush(void *vproc) {
      proc_instance_t *proc = (proc_instance_t*)vproc;
      proc->issue_flush=1;
 }
-          
-     
+
+
 void *WSInitializeLabelAssignment(char *newlabel, char *existinglabel, void *vproc) {
      wsSomeLabels *answer = calloc(1, sizeof(wsSomeLabels));
      if (!answer) {
@@ -336,12 +346,12 @@ void *WSInitializeLabelAssignment(char *newlabel, char *existinglabel, void *vpr
      if (existinglabel) {
           answer->existinglabel = wssearch_label(proc->wscalc_type_table, existinglabel);
      }
-     
+
      return answer;
 }
 
 int WSAssignLabel(void *labels, void *runtimetoken) {
-     
+
      wsdata_t *current_tuple = (wsdata_t*)runtimetoken;;
      wsSomeLabels *sl = (wsSomeLabels*)labels;
      if (!sl->existinglabel) {
@@ -357,7 +367,7 @@ int WSAssignLabel(void *labels, void *runtimetoken) {
                return 1;
           } else {
                return 0;
-               
+
           }
      }
      return 1;
@@ -398,7 +408,7 @@ wsLocalKeyedData_t* acquireKeyedDataReference(char *name, char*keyindex, proc_in
            entry->reference=localKeyedData;
            return localKeyedData;
        } else {
-           //the variable already existed.  So use the same hashtable and references.  
+           //the variable already existed.  So use the same hashtable and references.
            wsLocalKeyedData_t* newLocalKeyedData;
            newLocalKeyedData = calloc(1, sizeof(wsLocalKeyedData_t));
            if (!newLocalKeyedData) {
@@ -654,7 +664,7 @@ wscalcValue WSGetVarValue(void *compiletimeToken, void *runtimeToken, int op) {
           dprint("Looking for local variable with op %d", op);
           return getQVal(((wsLocalData_t*)ref->reference)->data, op);
      case VARTYPE_LOCALINDEXED: {
-          wslabel_t *nameLabel; 
+          wslabel_t *nameLabel;
           wsdata_t *current_tuple;
           int mlen;
           wsdata_t ** members;
@@ -783,7 +793,7 @@ int enqueueValue(nhqueue_t *list, wscalcValue data, int maxsize) {
 
      return 1;
 }
-     
+
 int WSSetVarValue(wscalcValue value, int maxSize, void *compiletimeToken, void *runtimeToken) {
      dprint("Called WSSetVarValue ******************************");
      varReference *ref = (varReference*)compiletimeToken;
@@ -794,7 +804,7 @@ int WSSetVarValue(wscalcValue value, int maxSize, void *compiletimeToken, void *
           }
           break;
      case VARTYPE_LOCALINDEXED: {
-          wslabel_t *nameLabel; 
+          wslabel_t *nameLabel;
           wsdata_t *current_tuple;
           int mlen;
           wsdata_t ** members;
@@ -840,7 +850,7 @@ int WSSetVarValue(wscalcValue value, int maxSize, void *compiletimeToken, void *
           break;
      }
      case VARTYPE_LABEL: {
-          wslabel_t *nameLabel = (wslabel_t*)((varReference*)compiletimeToken)->reference;   
+          wslabel_t *nameLabel = (wslabel_t*)((varReference*)compiletimeToken)->reference;
           wsdata_t *current_tuple = (wsdata_t*)runtimeToken;
           switch ( value.type ) {
           case WSCVT_INTEGER:
@@ -875,11 +885,11 @@ int WSSetVarValue(wscalcValue value, int maxSize, void *compiletimeToken, void *
 };
 
 
-uint8_t WSNameExists(void *compiletimeToken, void *runtimeToken) 
+uint8_t WSNameExists(void *compiletimeToken, void *runtimeToken)
 {
      varReference *ref = (varReference*)compiletimeToken;
 
-     switch (ref->type) 
+     switch (ref->type)
      {
 	case VARTYPE_LOCAL:
 	   return 0;
@@ -908,9 +918,9 @@ uint8_t WSNameExists(void *compiletimeToken, void *runtimeToken)
           }
           return 0;
         }
-	case VARTYPE_LABEL: 
+	case VARTYPE_LABEL:
 	{
-	   wslabel_t *nameLabel; 
+	   wslabel_t *nameLabel;
 	   wsdata_t *current_tuple;
 	   int mlen;
 	   wsdata_t ** members;
@@ -918,26 +928,26 @@ uint8_t WSNameExists(void *compiletimeToken, void *runtimeToken)
 
 	   nameLabel = (wslabel_t *)ref->reference;
 	   current_tuple = (wsdata_t*)runtimeToken;
-	   
-	   if (tuple_find_label(current_tuple, nameLabel, &mlen, &members)) 
+
+	   if (tuple_find_label(current_tuple, nameLabel, &mlen, &members))
 	   {
 	      return 1;
 	   }
-	   
+
 	   /* do a search on the tuple itself. */
-	   for (i = 0; i < current_tuple->label_len; i++) 
+	   for (i = 0; i < current_tuple->label_len; i++)
 	   {
 	      if (current_tuple->labels[i] == nameLabel)
 	      {
 		 return 1;
 	      }
 	   }
-	   
+
 	   dprint("data not found in tuple.  returning 0");
 	   return 0;
 	}
 	default:
-	   error_print("%s/%s:%d:  Shouldn't have reached here.", 
+	   error_print("%s/%s:%d:  Shouldn't have reached here.",
 		       __FILE__, __func__, __LINE__);
 	   return 0;
      }
@@ -954,7 +964,7 @@ void trim_trailing_spaces(char *str)
      str[end + 1] = '\0'; // Null terminate string.
 }
 
-static int proc_cmd_options(int argc, char ** argv, 
+static int proc_cmd_options(int argc, char ** argv,
                             proc_instance_t * proc, void * type_table) {
 
      int op;
@@ -1054,9 +1064,10 @@ int proc_init(wskid_t * kid, int argc, char ** argv, void ** vinstance, ws_sourc
      } else {
           return 0;
      }
-     
+
      //NOTE: from here until proc_cmd_options needs to be run
      //without another instance of the wscalc kid initializing.
+
      getVarValue = WSGetVarValue;
      setVarValue = WSSetVarValue;
      initializeVarReference = WSInitializeVarReference;
@@ -1066,6 +1077,7 @@ int proc_init(wskid_t * kid, int argc, char ** argv, void ** vinstance, ws_sourc
      initializeLabelAssignment = WSInitializeLabelAssignment;
      assignLabel = WSAssignLabel;
      wsflush = WSFlush;
+
      proc->localVarTable = wscalc_createLookupTable();
      proc->wscalc_type_table=type_table;
 
@@ -1076,7 +1088,7 @@ int proc_init(wskid_t * kid, int argc, char ** argv, void ** vinstance, ws_sourc
      }
 
      wscalc_destroyTable(proc->localVarTable);
-     return 1; 
+     return 1;
 }
 
 
@@ -1123,7 +1135,7 @@ static int proc_process(void * vinstance, wsdata_t* input_data,
                         ws_doutput_t * dout, int type_index) {
      proc_instance_t * proc = (proc_instance_t*)vinstance;
      proc->dout=dout;
-     
+
      proc->meta_process_cnt++;
 
      //TODO: answer gets the value of the last statement executed.
@@ -1131,10 +1143,10 @@ static int proc_process(void * vinstance, wsdata_t* input_data,
      //double answer = proc->compiledScript->go(proc->compiledScript, input_data);
      proc->compiledScript->go(proc->compiledScript, input_data);
 
-     if ((!proc->scriptSpecifiedPass && proc->passThrough) || 
-         (proc->scriptSpecifiedPass && 
+     if ((!proc->scriptSpecifiedPass && proc->passThrough) ||
+         (proc->scriptSpecifiedPass &&
           getWSCVBool(getQVal(proc->scriptSpecifiedPass->data, WSR_TAIL)))) {
-          if (!proc->scriptSpecifiedFail || 
+          if (!proc->scriptSpecifiedFail ||
               (getWSCVBool(getQVal(proc->scriptSpecifiedFail->data, WSR_TAIL))==0)) {
                ws_set_outdata(input_data, proc->outtype_tuple, dout);
                if (proc->issue_flush) {
@@ -1162,7 +1174,7 @@ static int proc_flush(void * vinstance, wsdata_t* input_data,
      proc->compiledScript->flush(proc->compiledScript);
      return 1;
 }
-     
+
 //return 1 if successful
 //return 0 if no..
 int proc_destroy(void * vinstance) {
@@ -1179,4 +1191,3 @@ int proc_destroy(void * vinstance) {
 
      return 1;
 }
-

@@ -1,3 +1,5 @@
+syntax = "proto2";
+
 package wsserial;
 
 option optimize_for = LITE_RUNTIME;
@@ -35,4 +37,3 @@ message WSdata {
   optional uint64 linktype = 8;
   optional uint64 linklen = 9;
 }
-

@@ -85,6 +85,10 @@ SOFTWARE.
   #endif // WS_PTHREADS
 #endif
 
+#if defined(__APPLE__)
+char *osxRealPath();
+#endif
+
 #ifdef __cplusplus
 CPP_OPEN
 #endif // __cplusplus
@@ -104,6 +108,8 @@ static inline char* get_executable_path(void)
      }
 
      return path;
+#elif defined(__APPLE__)
+     return osxRealPath();
 #elif defined(__FreeBSD__)
      int mib[] = {CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, 0};
      size_t len;
@@ -142,70 +148,70 @@ static inline void set_default_env(void)
      char currenv[1024];  // BUGBUG: needed because dirname() appears to affect its parameter...what the crap?
 
      if (!getenv(ENV_WS_BASE_DIR)) {
-	  char *exepath = get_executable_path();
-	  if (!exepath) {
-	       fprintf(stderr, "*** Can't determine invocation directory; set WS_BASE_DIR environment variable");
-	       exit(1);
-	  }
-	  // chop off /bin/<executable>
-	  strncpy(wspath, dirname(dirname(exepath)), sizeof(wspath)-1);  
-	  wspath[sizeof(wspath)-1] = '\0';
-	  free(exepath);
-     } else {
-	  strncpy(wspath, getenv(ENV_WS_BASE_DIR), 1024);
-	  fprintf(stderr, "  base directory from " ENV_WS_BASE_DIR ": %s\n", wspath);
+        char *exepath = get_executable_path();
+        if (!exepath) {
+          fprintf(stderr, "*** Can't determine invocation directory; set WS_BASE_DIR environment variable\n");
+          exit(1);
+        }
+        // chop off /bin/<executable>
+        strncpy(wspath, dirname(dirname(exepath)), sizeof(wspath)-1);
+        wspath[sizeof(wspath)-1] = '\0';
+        free(exepath);
+      } else {
+        strncpy(wspath, getenv(ENV_WS_BASE_DIR), 1024);
+        fprintf(stderr, "  base directory from " ENV_WS_BASE_DIR ": %s\n", wspath);
+      }
+
+      if (!getenv(ENV_WS_PROC_PATH)) {
+        strncpy(string1, wspath, sizeof(string1)-1);
+        string1[sizeof(string1)-1] = '\0';
+        strncat(string1, "/procs", sizeof(string1) - strlen(string1) - 1);
+        setenv(ENV_WS_PROC_PATH, string1, 0);
+      } else {
+        strncpy(currenv, getenv(ENV_WS_PROC_PATH), sizeof(currenv)-1);
+        currenv[sizeof(currenv)-1] = '\0';
+        if (strcmp(dirname(currenv), wspath)) {
+             fprintf(stderr, "  non-default proc path: %s\n",getenv(ENV_WS_PROC_PATH));
+        }
      }
 
-     if (!getenv(ENV_WS_PROC_PATH)) {
-          strncpy(string1, wspath, sizeof(string1)-1);
-          string1[sizeof(string1)-1] = '\0';
-          strncat(string1, "/procs", sizeof(string1) - strlen(string1) - 1);
-	  setenv(ENV_WS_PROC_PATH, string1, 0);
-     } else {
-          strncpy(currenv, getenv(ENV_WS_PROC_PATH), sizeof(currenv)-1);
-          currenv[sizeof(currenv)-1] = '\0';
-	  if (strcmp(dirname(currenv), wspath)) {
-	       fprintf(stderr, "  non-default proc path: %s\n",getenv(ENV_WS_PROC_PATH));
-	  } 
-     }
-	  
      if (!getenv(ENV_WS_ALIAS_PATH)) {
-          strncpy(string1, wspath, sizeof(string1)-1);
-          string1[sizeof(string1)-1] = '\0';
-          strncat(string1, "/procs/.wsalias", sizeof(string1) - strlen(string1) - 1);
-	  setenv(ENV_WS_ALIAS_PATH, string1, 0);
+        strncpy(string1, wspath, sizeof(string1)-1);
+        string1[sizeof(string1)-1] = '\0';
+        strncat(string1, "/procs/.wsalias", sizeof(string1) - strlen(string1) - 1);
+        setenv(ENV_WS_ALIAS_PATH, string1, 0);
      } else {
-          strncpy(currenv, getenv(ENV_WS_ALIAS_PATH), sizeof(currenv)-1);
-          currenv[sizeof(currenv)-1] = '\0';
-	  if (strcmp(dirname(currenv), wspath)) {
-	       fprintf(stderr, "  non-default alias path: %s\n",getenv(ENV_WS_ALIAS_PATH));
-	  } 
+        strncpy(currenv, getenv(ENV_WS_ALIAS_PATH), sizeof(currenv)-1);
+        currenv[sizeof(currenv)-1] = '\0';
+        if (strcmp(dirname(currenv), wspath)) {
+          fprintf(stderr, "  non-default alias path: %s\n",getenv(ENV_WS_ALIAS_PATH));
+        }
      }
 
-     if (!getenv(ENV_WS_DATATYPE_PATH)) {
-          strncpy(string1, wspath, sizeof(string1)-1);
-          string1[sizeof(string1)-1] = '\0';
-          strncat(string1, "/lib", sizeof(string1) - strlen(string1) - 1); 
-	  setenv(ENV_WS_DATATYPE_PATH, string1, 0);
+    if (!getenv(ENV_WS_DATATYPE_PATH)) {
+      strncpy(string1, wspath, sizeof(string1)-1);
+      string1[sizeof(string1)-1] = '\0';
+      strncat(string1, "/lib", sizeof(string1) - strlen(string1) - 1);
+      setenv(ENV_WS_DATATYPE_PATH, string1, 0);
      } else {
-          strncpy(currenv, getenv(ENV_WS_DATATYPE_PATH), sizeof(currenv)-1);
-          currenv[sizeof(currenv)-1] = '\0';
-	  if (strcmp(dirname(currenv), wspath)) {
-	       fprintf(stderr, "  non-default datatype path: %s\n",getenv(ENV_WS_DATATYPE_PATH));
-	  } 
-     }
+      strncpy(currenv, getenv(ENV_WS_DATATYPE_PATH), sizeof(currenv)-1);
+      currenv[sizeof(currenv)-1] = '\0';
+      if (strcmp(dirname(currenv), wspath)) {
+         fprintf(stderr, "  non-default datatype path: %s\n",getenv(ENV_WS_DATATYPE_PATH));
+      }
+    }
 
      if (!getenv(ENV_WS_CONFIG_PATH)) {
-          strncpy(string1, wspath, sizeof(string1)-1);
-          string1[sizeof(string1)-1] = '\0';
-          strncat(string1, "/config", sizeof(string1) - strlen(string1) - 1);
-	  setenv(ENV_WS_CONFIG_PATH, string1, 0);
+        strncpy(string1, wspath, sizeof(string1)-1);
+        string1[sizeof(string1)-1] = '\0';
+        strncat(string1, "/config", sizeof(string1) - strlen(string1) - 1);
+        setenv(ENV_WS_CONFIG_PATH, string1, 0);
      } else {
-          strncpy(currenv, getenv(ENV_WS_CONFIG_PATH), sizeof(currenv)-1);
-          currenv[sizeof(currenv)-1] = '\0';
-	  if (strcmp(dirname(currenv), wspath)) {
-	       fprintf(stderr, "  non-default config path: %s\n",getenv(ENV_WS_CONFIG_PATH));
-	  } 
+        strncpy(currenv, getenv(ENV_WS_CONFIG_PATH), sizeof(currenv)-1);
+        currenv[sizeof(currenv)-1] = '\0';
+        if (strcmp(dirname(currenv), wspath)) {
+             fprintf(stderr, "  non-default config path: %s\n",getenv(ENV_WS_CONFIG_PATH));
+        }
      }
 }
 
@@ -284,11 +290,11 @@ int mimo_compile_graph_internal(mimo_t *);
 // the following is used to emit data as a source
 // use this function when you want to be allocated a data buffer
 // to copy your data into prior to emitting..
-void * mimo_emit_data_copy(mimo_source_t *); 
+void * mimo_emit_data_copy(mimo_source_t *);
 
 //run processing graph to completion based on emitting sources
 // source data must be emitted (if available)
-// prior to calling this function.. 
+// prior to calling this function..
 // you don't have to have all your sources emit data.. just some
 // so that the graph can do work.
 int mimo_run_graph(mimo_t*);
@@ -298,7 +304,7 @@ int mimo_run_exiting_graph(mimo_t*);
 /// call this after you call mimo_run_graph
 //  keep calling it until it returns NULL..
 //  since you may have several bits of output data collected at a given sink
-void * mimo_collect_data(mimo_sink_t *, char *); 
+void * mimo_collect_data(mimo_sink_t *, char *);
 
 //use the following to print out graph upon loading of file or command line
 void mimo_output_graphviz(mimo_t *, FILE *);
@@ -328,7 +334,7 @@ typedef struct _wskid_t {
 //------------------
 //defined in init.h
 //
-// list of a processing modules function pointers and attributes     
+// list of a processing modules function pointers and attributes
 // loaded from a .so file
 struct _ws_proc_module_t;
 typedef struct _ws_proc_module_t ws_proc_module_t;
@@ -394,7 +400,7 @@ static inline int wsdata_add_label(wsdata_t * data, wslabel_t * label) {
      if (!label) return 0;
      tmp = __sync_fetch_and_add(&data->writer_label_len, 1);
      if (__builtin_expect(tmp >= WSDATA_MAX_LABELS, 0)) {
-          (void) __sync_fetch_and_sub(&data->writer_label_len, 1); 
+          (void) __sync_fetch_and_sub(&data->writer_label_len, 1);
           return 0;
      }
      data->labels[tmp] = label;

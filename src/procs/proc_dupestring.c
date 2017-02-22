@@ -84,7 +84,7 @@ int procbuffer_decode(void * vproc, wsdata_t * tdata,
                                      uint8_t * buf, int buflen) {
      proc_instance_t * proc = (proc_instance_t*)vproc;
 
-     if ((member->dtype == dtype_string)) {
+     if (member->dtype == dtype_string) {
           tuple_dupe_string(tdata, proc->label_decode, (char *)buf, buflen);
      }
      else {
@@ -103,4 +103,3 @@ int procbuffer_destroy(void * vinstance) {
 
      return 1;
 }
-

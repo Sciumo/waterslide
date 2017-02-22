@@ -10,7 +10,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "wscalc.h"
-#include "wscalc.tab.h"
+#include "wscalc.tab.hh"
 
 #ifdef YY_FLEX_SUBMINOR_VERSION
 # define FLEX_VERSION \
@@ -75,7 +75,7 @@ stringlit      \"(\\.|[^"])*\"
 "<<="     {return LEFTSHIFTC;}
 ">>"      {return RIGHTSHIFT;}
 ">>="     {return RIGHTSHIFTC;}
-"**"      {return POWER;} 
+"**"      {return POWER;}
 "*"	     {return ASTERISK;}
 "*="	     {return ASTERISKC;}
 "("	     {return LPAREN;}
@@ -153,4 +153,3 @@ int wscalcwrap() {
      }
      return 1;
 }
-

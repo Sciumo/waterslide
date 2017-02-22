@@ -44,7 +44,7 @@ typedef struct _paramList_t {
 typedef wscalcValue (*calcFunction)(void *extra, paramList_t *params, void *runtimeToken);
 
 typedef struct fEntry {
-     char *name;
+     const char *name;
      calcFunction fnct;
      void *extra;
      size_t numParams;
@@ -54,6 +54,7 @@ typedef struct fEntry {
 //back to WS.  first two called during initialization to get labels
 //second two called at runtime to assign and retrieve
 //variable values
+
 extern wscalcValue (*getVarValue)(void *, void *, int);
 extern int (*setVarValue)(wscalcValue, int, void *, void *);
 extern void (*destroyVar)(void *);
@@ -65,10 +66,11 @@ extern void *(*initializeLabelAssignment)(char *, char *, void *);
 extern int (*assignLabel)(void *, void *);
 extern void (*wsflush)(void *);
 
-/* a few handy constants */
-static const wscalcValue wscalcZERO = {0};
 
-//these functions defined below. 
+/* a few handy constants */
+static const wscalcValue wscalcZERO = { WSCVT_INTEGER, 0 };
+
+//these functions defined below.
 static wscalcValueType promoteTypes(const wscalcValueType a, const wscalcValueType b);
 static wscalcPart *GetConstantProducer(wscalcValue);
 static wscalcPart *GetConstantProducerInteger(int64_t);
@@ -127,18 +129,18 @@ enum strFuncKey {
 
 static fEntry_t *getFunction(fEntry_t *lookupTable, char *lookupName);
 static fEntry_t functionTable[] = {
-     {"sin",        doMathFunc,    sin,                1},
-     {"cos",        doMathFunc,    cos,                1},
-     {"atan",       doMathFunc,    atan,               1},
-     {"ln",         doMathFunc,    log,                1},
-     {"exp",        doMathFunc,    exp,                1},
-     {"sqrt",       doMathFunc,    sqrt,               1},
-     {"abs",        doMathFunc,    fabs,               1},
-     {"trunc",      doMathFunc,    trunc,              1},
-     {"floor",      doMathFunc,    floor,              1},
-     {"ceil",       doMathFunc,    ceil,               1},
-     {"round",      doMathFunc,    round,              1},
-     {"enqueue",    enqueueExec,   NULL,               3},
+     {"sin",        doMathFunc,    (void *)sin,                1},
+     {"cos",        doMathFunc,    (void *)cos,                1},
+     {"atan",       doMathFunc,    (void *)atan,               1},
+     {"ln",         doMathFunc,    (void *)log,                1},
+     {"exp",        doMathFunc,    (void *)exp,                1},
+     {"sqrt",       doMathFunc,    (void *)sqrt,               1},
+     {"abs",        doMathFunc,    (void *)fabs,               1},
+     {"trunc",      doMathFunc,    (void *)trunc,              1},
+     {"floor",      doMathFunc,    (void *)floor,              1},
+     {"ceil",       doMathFunc,    (void *)ceil,               1},
+     {"round",      doMathFunc,    (void *)round,              1},
+     {"enqueue",    enqueueExec,   (void *)NULL,               3},
      {"qcount",     queueOpFunc,   (void*)WSR_CNT,     1},
      {"qsum",       queueOpFunc,   (void*)WSR_SUM,     1},
      {"qavg",       queueOpFunc,   (void*)WSR_AVG,     1},
@@ -179,7 +181,7 @@ static fEntry_t functionTable[] = {
 %type <paramList> paramList
 
 %right INCREMENTC DECREMENTC ASTERISKC SLASHC
-%right MODC BITANDC BITIORC BITXORC LEFTSHIFTC RIGHTSHIFTC 
+%right MODC BITANDC BITIORC BITXORC LEFTSHIFTC RIGHTSHIFTC
 %right EQUALS
 %left OR
 %left AND
@@ -269,7 +271,7 @@ expr: expr PLUS expr		{ $$ = GetPlusProducer($1, $3); }
         | WSCLABEL LPAREN NAME COMMA NAME RPAREN
                               { $$ = GetLabelProducer($3, $5, callerState); }
         | CAST LPAREN TYPE COMMA expr RPAREN { $$ = GetCastProducer($3, $5); }
-        | NAME LPAREN paramList RPAREN { struct fEntry *entry = getFunction(functionTable, $1); 
+        | NAME LPAREN paramList RPAREN { struct fEntry *entry = getFunction(functionTable, $1);
                                     if (entry==NULL) {
                                         wscalcerror(callerState, wscalc_output, wscalc_error,
                                                      "No such function");
@@ -328,8 +330,8 @@ void *wscalc_createLookupTable(void) {
 }
 
 wscalc_lookupTableEntry *wscalc_getEntry(char *name, void *table, int *created) {
-     wscalc_lookupTableEntry *ptr = table;
-     wscalc_lookupTableEntry *lastPtr = NULL;
+     wscalc_lookupTableEntry *ptr =  (wscalc_lookupTableEntry *)table;
+     wscalc_lookupTableEntry *lastPtr = (wscalc_lookupTableEntry *)NULL;
      *created = 0;
      while (ptr!=NULL) {
           if (strcmp(ptr->name, name)==0) {
@@ -339,7 +341,7 @@ wscalc_lookupTableEntry *wscalc_getEntry(char *name, void *table, int *created) 
                ptr = ptr->next;
           }
      }
-     lastPtr->next = calloc(1, sizeof(wscalc_lookupTableEntry));
+     lastPtr->next = (wscalc_lookupTableEntry *)calloc(1, sizeof(wscalc_lookupTableEntry));
      if (!lastPtr->next) {
           error_print("failed wscalc_getEntry calloc of lastPtr->next");
           return NULL;
@@ -347,12 +349,12 @@ wscalc_lookupTableEntry *wscalc_getEntry(char *name, void *table, int *created) 
      strcpy(lastPtr->next->name, name);
      *created = 1;
      return lastPtr->next;
-     
+
 }
 
 void wscalc_destroyTable(void *table) {
-     wscalc_lookupTableEntry *ptr = table;
-     wscalc_lookupTableEntry *nextPtr = NULL;
+     wscalc_lookupTableEntry *ptr = (wscalc_lookupTableEntry *)table;
+     wscalc_lookupTableEntry *nextPtr = (wscalc_lookupTableEntry *)NULL;
 
      while (ptr!=NULL) {
           nextPtr = ptr->next;
@@ -386,7 +388,7 @@ static wscalcValue FlushExec(wscalcPart *aWSCalcPart, void *runtimetoken) {
 
 
 static wscalcPart *GetFlushProducer(void *callerState) {
-     wscalcPart *answer = calloc(1, sizeof(wscalcPart));
+     wscalcPart *answer = (wscalcPart *)calloc(1, sizeof(wscalcPart));
      if (!answer) {
           error_print("failed GetFlushProducer calloc of answer");
           return NULL;
@@ -417,7 +419,7 @@ static wscalcValue LabelExec(wscalcPart *aWSCalcPart, void *runtimetoken) {
 
 
 static wscalcPart *GetLabelProducer(char *newlabel, char *existinglabel, void *callerState) {
-     wscalcPart *answer = calloc(1, sizeof(wscalcPart));
+     wscalcPart *answer = (wscalcPart *)calloc(1, sizeof(wscalcPart));
      if (!answer) {
           error_print("failed GetLabelProducer calloc of answer");
           return NULL;
@@ -467,7 +469,7 @@ typedef struct _wsIf {
 } wsIf_type;
 
 static void IfDestroy(wscalcPart *aWSCalcPart) {
-     wsIf_type *ifs = aWSCalcPart->params;
+     wsIf_type *ifs = (wsIf_type *)aWSCalcPart->params;
      if (ifs->cond) {
           ifs->cond->destroy(ifs->cond);
      }
@@ -485,7 +487,7 @@ static void IfDestroy(wscalcPart *aWSCalcPart) {
 }
 
 static void IfFlush(wscalcPart *aWSCalcPart) {
-     wsIf_type *ifs = aWSCalcPart->params;
+     wsIf_type *ifs = (wsIf_type *)aWSCalcPart->params;
 
      if (ifs->cond) {
           ifs->cond->flush(ifs->cond);
@@ -501,7 +503,7 @@ static void IfFlush(wscalcPart *aWSCalcPart) {
 }
 
 static wscalcValue IfExec(wscalcPart *aWSCalcPart, void *runtimetoken) {
-     wsIf_type *ifs = aWSCalcPart->params;
+     wsIf_type *ifs = (wsIf_type *)aWSCalcPart->params;
      if (!ifs->cond) {
           return wscalcZERO;
      }
@@ -523,12 +525,12 @@ static wscalcValue IfExec(wscalcPart *aWSCalcPart, void *runtimetoken) {
 }
 
 static wscalcPart *GetIfProducer(wscalcPart *cond, wscalcPart *wsThen, wscalcPart *wsElse) {
-     wscalcPart *answer = calloc(1, sizeof(wscalcPart));
+     wscalcPart *answer = (wscalcPart *)calloc(1, sizeof(wscalcPart));
      if (!answer) {
           error_print("failed GetIfProducer calloc of answer");
           return NULL;
      }
-     wsIf_type *ifs = calloc(1, sizeof(wscalcPart));
+     wsIf_type *ifs = (wsIf_type *)calloc(1, sizeof(wscalcPart));
      if (!ifs) {
           error_print("failed GetIfProducer calloc of ifs");
           return NULL;
@@ -546,16 +548,16 @@ static wscalcPart *GetIfProducer(wscalcPart *cond, wscalcPart *wsThen, wscalcPar
 
 /*==== wscalcPart for unary minus ====*/
 static void UnaryMinusDestroy(wscalcPart *aWSCalcPart) {
-     ((wscalcPart*)aWSCalcPart->params)->destroy(aWSCalcPart->params);
+     ((wscalcPart*)aWSCalcPart->params)->destroy((wscalcPart*)aWSCalcPart->params);
      free(aWSCalcPart);
 }
 
 static void UnaryMinusFlush(wscalcPart *aWSCalcPart) {
-     ((wscalcPart*)aWSCalcPart->params)->flush(aWSCalcPart->params);
+     ((wscalcPart*)aWSCalcPart->params)->flush((wscalcPart*)aWSCalcPart->params);
 }
 
 static wscalcValue UnaryMinusExec(wscalcPart *aWSCalcPart, void *runtimetoken) {
-     wscalcValue res = ((wscalcPart*)aWSCalcPart->params)->go(aWSCalcPart->params, runtimetoken);
+     wscalcValue res = ((wscalcPart*)aWSCalcPart->params)->go((wscalcPart*)aWSCalcPart->params, runtimetoken);
      if ( res.type < WSCVT_BOOLEAN ) { // Integral types
           res.v.i = - res.v.i;
           if ( res.type == WSCVT_UINTEGER ) res.type = WSCVT_INTEGER;
@@ -748,8 +750,8 @@ static void FunctionCallProducerFlush(wscalcPart *aWSCalcPart) {
 }
 
 static wscalcValue FunctionCallProducerExec(wscalcPart *aWSCalcPart, void *runtimeToken) {
-     void **theParams = aWSCalcPart->params;
-     wscalcValue (*f)(void *, paramList_t*) = theParams[0];
+     void **theParams = (void**)aWSCalcPart->params;
+     wscalcValue (*f)(void *, paramList_t*) = (_wscalcValue (*)(void *,_paramList_t *))theParams[0];
      paramList_t *params = (paramList_t*)theParams[2];
      ExecParamList(params, runtimeToken);
 
@@ -785,8 +787,8 @@ static wscalcPart *GetFunctionCallProducer(const fEntry_t *entry, paramList_t *p
      }
 
      void **theParams = (void**)answer->params;
-     theParams[0]=entry->fnct;
-     theParams[1]=entry->extra;
+     theParams[0]=(void *)entry->fnct;
+     theParams[1]=(void*)entry->extra;
      theParams[2]=params;
      answer->go = FunctionCallProducerExec;
      answer->destroy = FunctionCallProducerDestroy;
@@ -823,7 +825,7 @@ static void StatementListFlush(wscalcPart *aWSCalcPart) {
      if (parts[0]!=NULL) {
           parts[0]->flush(parts[0]);
      }
-     
+
      if (parts[1]!=NULL) {
           parts[1]->flush(parts[1]);
      }
@@ -886,7 +888,7 @@ static void BinaryInfixFlush(wscalcPart *aWSCalcPart) {
      parts[1]->flush(parts[1]);
 }
 
-static wscalcPart *GetBinaryInfixProducer(wscalcPart *first, wscalcPart *second, 
+static wscalcPart *GetBinaryInfixProducer(wscalcPart *first, wscalcPart *second,
 				wscalcValue(*specificProducer)(wscalcPart *, void*)) {
      wscalcPart *answer = (wscalcPart *)malloc(sizeof(wscalcPart));
      if (!answer) {
@@ -1522,7 +1524,7 @@ static wscalcValue LogicalNotProducerFunc(void *ign, paramList_t *params, void *
 
 static wscalcPart *GetLogicalNotProducer(wscalcPart *first) {
      static const fEntry_t notEntry = {"not", LogicalNotProducerFunc, NULL, 1};
-     paramList_t *params = calloc(1, sizeof(paramList_t));
+     paramList_t *params = (paramList_t *)calloc(1, sizeof(paramList_t));
      if ( !params ) {
           error_print("failed malloc in GetLogicalNotProducer for params");
           return NULL;
@@ -1637,7 +1639,7 @@ static wscalcValue doStringFunc(void* function, paramList_t *params, void *runti
                wsdt_string_t *needle = getStringArg(params, 1);
                if ( NULL == needle ) break;
                res.type = WSCVT_INTEGER;
-               char *x = memmem(baseArgStr->buf, baseArgStr->len, needle->buf, needle->len);
+               char *x = (char *)memmem(baseArgStr->buf, baseArgStr->len, needle->buf, needle->len);
                if ( x == NULL ) res.v.i = -1;
                else res.v.i = (int64_t)(x - baseArgStr->buf);
                break;
@@ -1685,7 +1687,7 @@ static wscalcValue doStringFunc(void* function, paramList_t *params, void *runti
 
                char *x = NULL;
                uint32_t replCount = 0;
-               while ( (x = memmem(orig_str.buf, orig_str.len, target->buf, target->len)) != NULL ) {
+               while ( (x = (char *)memmem(orig_str.buf, orig_str.len, target->buf, target->len)) != NULL ) {
                dprint("Replacing [%s] with [%s] in [%s] at [%s]", target->buf, repl->buf, orig_str.buf, x);
                     replCount++;
 
@@ -1779,7 +1781,7 @@ static int convertStringToTime(const wsdt_string_t *wsstr, struct timeval *tv)
 
 static wscalcValue doParseDateFunc(void* function, paramList_t *params, void *runtimeToken)
 {
-     const wscalcValue res = {0};
+     const wscalcValue res = {WSCVT_INTEGER, 0};
      wsdt_string_t *baseArgStr = getStringArg(params, 0);
      if ( NULL == baseArgStr ) return res;
 
@@ -1926,16 +1928,16 @@ uint64_t getWSCVUInt(wscalcValue v) {
      case WSCVT_UINTEGER:
           return v.v.u;
      case WSCVT_STRING: {
-          char *buf = (char*)WSDTSTRING(v)->buf;
-          int blen = WSDTSTRING(v)->len;
-          char backup = buf[blen];
-          buf[blen] = '\0';
-          uint64_t d = strtoull(buf, NULL, 0);
-          buf[blen] = backup;
-          return d;
+            char *buf = (char*)WSDTSTRING(v)->buf;
+            int blen = WSDTSTRING(v)->len;
+            char backup = buf[blen];
+            buf[blen] = '\0';
+            uint64_t d = strtoull(buf, NULL, 0);
+            buf[blen] = backup;
+            return d;
+          }
      case WSCVT_TIME:
           return v.v.t.tv_sec;
-     }
      default:
           error_print("Invalid type to convert. (%d to %d)", v.type, WSCVT_UINTEGER);
           return 0.0;
@@ -2039,4 +2041,3 @@ static paramList_t* getParam(size_t n, paramList_t *list)
      }
      return list;
 }
-

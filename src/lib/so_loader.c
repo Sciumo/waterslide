@@ -32,9 +32,9 @@ SOFTWARE.
 #include "listhash.h"
 #include "mimo.h"
 
-// NOTE:  mimo->verbose is unset when modules and datatypes are loaded, which is 
-//        before read_cmd_options is called. I recommend local control of verbosity, 
-//        since we are rarely interested in this output.  So set this item to nonzero 
+// NOTE:  mimo->verbose is unset when modules and datatypes are loaded, which is
+//        before read_cmd_options is called. I recommend local control of verbosity,
+//        since we are rarely interested in this output.  So set this item to nonzero
 //        if you want so_loader verbosity.
 #define SO_LOADER_VERBOSE 0
 
@@ -195,7 +195,7 @@ static int multiple_datapath_lookup(mimo_t * mimo, char * datatype_path) {
 
      char * path;
      int rtn = 0;
-     
+
      path = strsep(&buf, PATHDELIM);
      while (path) {
           int len = strlen(path);
@@ -208,7 +208,7 @@ static int multiple_datapath_lookup(mimo_t * mimo, char * datatype_path) {
           free(dup);
      }
      return rtn;
-     
+
 }
 
 int load_datatype_libraries(mimo_t * mimo) {
@@ -322,7 +322,7 @@ static int so_load_wsprocbuffer(void * sh_file_handle,
           (char *) dlsym(sh_file_handle,"procbuffer_option_str");
      module->pbkid->decode_func =
           (wsprocbuffer_sub_decode) dlsym(sh_file_handle,"procbuffer_decode");
-    
+
      module->pbkid->element_func =
           (wsprocbuffer_sub_element) dlsym(sh_file_handle,"procbuffer_element");
 
@@ -437,13 +437,14 @@ static mimo_directory_list_t * build_kid_dirlist(void) {
      char * envlist = getenv(ENV_WS_PROC_PATH);
      if (!envlist) {
           envlist = "./procs";
+          dprint("default envlist set: %s\n", envlist);
      }
      char * dstr = strdup(envlist);
      //find out how big a list
      char * ptr = dstr;
 
      mimo_directory_list_t * dlist =
-          calloc(1, sizeof(mimo_directory_list_t)); 
+          calloc(1, sizeof(mimo_directory_list_t));
      if (!dlist) {
           error_print("failed build_kid_dirlist calloc of dlist");
           return NULL;
@@ -491,7 +492,7 @@ ws_proc_module_t * ws_proc_module_dlopen(mimo_t * mimo, const char * fullname, c
      int i;
 
      sh_file_handle = dlopen(fullname, RTLD_NOW);
-     
+
      if (!sh_file_handle) {
           error_print("proc dlopen %s", dlerror());
           return NULL;
@@ -510,12 +511,12 @@ ws_proc_module_t * ws_proc_module_dlopen(mimo_t * mimo, const char * fullname, c
      int * pb = (int *) dlsym(sh_file_handle,"is_procbuffer");
      int * ks = (int *) dlsym(sh_file_handle,"is_prockeystate");
      if (pb) {
-          if(!so_load_wsprocbuffer(sh_file_handle, module)) { 
+          if(!so_load_wsprocbuffer(sh_file_handle, module)) {
                return NULL;
           }
      }
      else if (ks) {
-          if(!so_load_wsprockeystate(sh_file_handle, module)) { 
+          if(!so_load_wsprockeystate(sh_file_handle, module)) {
                return NULL;
           }
      }
@@ -556,7 +557,7 @@ ws_proc_module_t * ws_proc_module_dlopen(mimo_t * mimo, const char * fullname, c
 
 
      dprint("here in dlopen3");
-     
+
      //walk aliases .. add to module list
      if (module->aliases) {
           i = 0;
@@ -606,10 +607,12 @@ static char * find_kid_fullpath(const char * modname, mimo_directory_list_t * dl
 ws_proc_module_t * ws_proc_module_find(mimo_t * mimo, const char * modname) {
      ws_proc_module_t * module = NULL;
 
+printf( "Looking for %s\n", modname );
+
      //see if module is already in list
      if (mimo->proc_module_list) {
           module = listhash_find(mimo->proc_module_list, modname,
-                                 strlen(modname));     
+                                 strlen(modname));
           if (module) {
                if (module->did_init) {
                     return module;
@@ -629,6 +632,7 @@ ws_proc_module_t * ws_proc_module_find(mimo_t * mimo, const char * modname) {
      if (!mimo->kid_dirlist) {
           mimo->kid_dirlist = build_kid_dirlist();
           if (!mimo->kid_dirlist) {
+              fprintf( stderr, "Unable to build kid dir list.\n");
                return NULL;
           }
      }
@@ -644,7 +648,7 @@ ws_proc_module_t * ws_proc_module_find(mimo_t * mimo, const char * modname) {
 
      //test file here.. with stat
 
-     module = ws_proc_module_dlopen(mimo, fullname, modname);     
+     module = ws_proc_module_dlopen(mimo, fullname, modname);
 
      free(fullname);
      return module;

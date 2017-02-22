@@ -1,7 +1,9 @@
+syntax = "proto2";
+
 package wsproto;
 
 // wsproto version 2
-// In the file header there is a two byte field for each the protocol and the 
+// In the file header there is a two byte field for each the protocol and the
 // version.  The protocol is 2 and the version is 2.
 
 option java_package = "wsproto";
@@ -43,7 +45,7 @@ message wsdata {
 
     // dtype_uint
     //  Store data in uint32_data
-    UINT_TYPE = 7; 
+    UINT_TYPE = 7;
 
     // dtype_uint64
     //  Store data in uint64_data
@@ -52,11 +54,11 @@ message wsdata {
     // dtype_uint16
     //  Store data in uint32_data
     UINT16_TYPE = 10;
- 
+
     // dtype_uint8
     //  Store data in uint32_data
     UINT8_TYPE = 11;
- 
+
     // dtype_label
     //  Store data in string_data
     LABEL_TYPE = 13;
@@ -70,7 +72,7 @@ message wsdata {
     // dtype_int
     //  Store data in sint32_data
     INT_TYPE = 16;
-   
+
     // dtype_tinystring
     //  Store data in string_data
     TINYSTRING_TYPE = 19;
@@ -104,8 +106,8 @@ message wsdata {
     ARRAY_UINT_TYPE = 27;
 
     // Unimplemented types
-    //FLUSH_TYPE 
-    //FSTR_TYPE 
+    //FLUSH_TYPE
+    //FSTR_TYPE
     //MMAP_TYPE
     //MASSIVESTRING_TYPE
     //HUGEBLOCK_TYPE
@@ -118,37 +120,37 @@ message wsdata {
   // the list of labels for this data field
   repeated string label = 2;
 
-  // data field 
-  // Notes: 
+  // data field
+  // Notes:
   // 1) because protocol buffers to not have unions, the fields below
   //   marked as optional and only one is expected to be used at a time
 
   repeated wsdata tuple_member = 3;
-  
+
   // a string must always contain UTF-8 encoded or 7-bit ASCII text
   optional string string_data = 4;
-  
-  optional bytes bytes_data = 5;
-  
-  optional double double_data = 6;
-  
-  optional uint32 uint32_data = 7; 
-  
-  optional uint32 uint32_data2 = 8; 
-  
-  optional uint64 uint64_data = 9;
-  
-  optional uint64 uint64_data2 = 10;
-  
-  // fixed64 is more efficient if values are often greater than 2^56
-  optional fixed64 fixed64_data = 11; 
- 
-  // sint32 is faster for negative numbers
-  optional sint32 sint32_data = 12; 
-  
-  optional sint32 sint32_data2 = 15; 
 
-  optional uint32 uint32_data3 = 13; 
+  optional bytes bytes_data = 5;
+
+  optional double double_data = 6;
+
+  optional uint32 uint32_data = 7;
+
+  optional uint32 uint32_data2 = 8;
+
+  optional uint64 uint64_data = 9;
+
+  optional uint64 uint64_data2 = 10;
+
+  // fixed64 is more efficient if values are often greater than 2^56
+  optional fixed64 fixed64_data = 11;
+
+  // sint32 is faster for negative numbers
+  optional sint32 sint32_data = 12;
+
+  optional sint32 sint32_data2 = 15;
+
+  optional uint32 uint32_data3 = 13;
 
   optional bytes bytes_data2 = 14;
 }

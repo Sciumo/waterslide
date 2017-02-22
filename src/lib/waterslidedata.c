@@ -46,16 +46,16 @@ void wsdatatype_profile_verbose(void * data, void * ignore) {
           uint32_t buffered = wsfree_list_size(dtype->freeq);
           status_print("dtype %s: allocd %u recovered %u %s",
                        dtype->name,
-                       allocated, 
-                       buffered, 
+                       allocated,
+                       buffered,
                        (allocated != buffered) ? "ERROR" : "");
      }
      if (allocated_ptr) {
           uint32_t buffered_ptr = wsfree_list_size(dtype->freeq_ptr);
           status_print("dtype %s ptr: allocd %u recovered %u %s",
                        dtype->name,
-                       allocated_ptr, 
-                       buffered_ptr, 
+                       allocated_ptr,
+                       buffered_ptr,
                        (allocated_ptr != buffered_ptr) ? "ERROR" : "");
      }
 }
@@ -308,7 +308,7 @@ void wsdatatype_free_module_names(void * data, void * ignore) {
 int wsregister_label_hash(void * v_type_table, wslabel_t * parent,
                           uint64_t hash) {
      dprint("wsregister_label_hash ");
-     dprint("wsregister_label_hash %p %p %lu", v_type_table, parent, hash);
+     dprint("wsregister_label_hash %p %p %llu", v_type_table, parent, hash);
      if (!hash || !parent) {
           return 0;
      }
@@ -337,7 +337,7 @@ static inline wslabel_t * wsregister_label_internal(void * v_type_table,
      wslabel_t * label;
      //look up label..
      label = (wslabel_t*)listhash_find_attach(mdl->label_table, name, namelen);
- 
+
      dprint("wsregister_label_internal %p %p %s", v_type_table, label, name);
      if (!label->name) {
           label->name = strdup(name);
@@ -537,7 +537,7 @@ wsdatatype_t * wsdatatype_register(void * v_type_table,
      wsdatatype_t * dtype;
      int namelen = strlen(name);
 
-     //check if data type is already registered..     
+     //check if data type is already registered..
      dtype = (wsdatatype_t*)listhash_find(mdl->dtype_table, name, namelen);
      if (dtype) {
           fprintf(stderr,"data type %s already registered, ignoring new registry", name);
@@ -642,7 +642,7 @@ int wsdatatype_register_alias(void * v_type_table, wsdatatype_t * wsdtype,  cons
           return 0;
      }
      int namelen = strlen(name);
-     
+
      dtype = (wsdatatype_t*)listhash_find_attach_reference(mdl->dtype_table,
                                                            name,
                                                            namelen,
@@ -659,7 +659,7 @@ wsdatatype_t * wsdatatype_get(void * v_type_table, const char * name) {
      mimo_datalists_t * mdl = (mimo_datalists_t *)v_type_table;
      wsdatatype_t * dtype;
 
-     //check if data type is already registered..     
+     //check if data type is already registered..
      dtype = (wsdatatype_t *)listhash_find(mdl->dtype_table,
                                            name, strlen(name));
      return dtype;
@@ -730,7 +730,7 @@ int wsdatatype_default_snprint(char * buf, int buflen,
 
 void wsdatatype_default_init(wsdata_t * wsdata, wsdatatype_t * dtype) {
      if (dtype->len) {
-          memset(wsdata->data, 0, dtype->len); 
+          memset(wsdata->data, 0, dtype->len);
      }
      else {
           wsdata->data = NULL;
@@ -889,4 +889,3 @@ int wslabel_nested_search_build_ext(void * type_table, wslabel_nested_set_ext_t 
                                     const char * search, int uid) {
      return wslabel_nested_recurse_ext(type_table, nest, search, 0, uid);
 }
-

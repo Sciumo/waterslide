@@ -223,4 +223,3 @@ pipe_sep: PIPE { $$ = ASTKidDef::PIPE; }
         ;
 
 %%
-
