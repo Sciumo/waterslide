@@ -26,6 +26,7 @@ SOFTWARE.
 #include <string.h>
 #include <dlfcn.h>
 #include <sys/stat.h>
+#include <errno.h>
 #include "waterslide.h"
 #include "so_loader.h"
 #include "init.h"
@@ -593,11 +594,13 @@ static char * find_kid_fullpath(const char * modname, mimo_directory_list_t * dl
                    dlist->directories[i], WS_PROC_MOD_PREFIX, modname,
                    WS_PROC_MOD_SUFFIX);
           dprint("attemping kid path %s", fullname);
-
-          if (!stat(fullname, &statbuffer)) {
+          int ret = stat(fullname, &statbuffer);
+          if( ret == 0 ) {
+               dprint("file mode %d", statbuffer.st_mode );
                // we have a file
                return fullname;
           }
+          dprint("Stat error: %s", strerror(errno) );
      }
      free(fullname);
      return NULL;

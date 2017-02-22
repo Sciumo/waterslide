@@ -79,6 +79,9 @@ set_property ( TARGET ws PROPERTY CXX_STANDARD 11 )
 add_executable ( wsman ./src/util/wsman.c ./src/lib/init.c )
 target_link_libraries ( wsman wslib ${CMAKE_DL_LIBS} )
 
+add_executable ( wsalias ./src/util/wsalias.c ./src/lib/init.c )
+target_link_libraries ( wsalias wslib ${CMAKE_DL_LIBS} )
+
 function( Kid name file extrasrc extralib )
   message ( STATUS "Configure Kid ${name} ${file}" )
   add_library ( ${name} SHARED ${file} ${extrasrc} )
