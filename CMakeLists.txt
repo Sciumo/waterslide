@@ -69,13 +69,15 @@ set (WSLIBSRC
 set ( WSSRC src/util/waterslide.c )
 
 add_library ( wslib SHARED ${WSLIBSRC} )
-add_executable ( ws ${WSSRC} )
-
-target_link_libraries ( ws ${PROTOBUF_LIBRARIES} ${ZLIB_LIBRARIES} wslib ${CMAKE_DL_LIBS} )
 target_link_libraries ( wslib ${PROTOBUF_LIBRARIES} ${ZLIB_LIBRARIES} )
-
-set_property ( TARGET ws PROPERTY CXX_STANDARD 11 )
 set_property ( TARGET wslib PROPERTY CXX_STANDARD 11 )
+
+add_executable ( ws ${WSSRC} )
+target_link_libraries ( ws ${PROTOBUF_LIBRARIES} ${ZLIB_LIBRARIES} wslib ${CMAKE_DL_LIBS} )
+set_property ( TARGET ws PROPERTY CXX_STANDARD 11 )
+
+add_executable ( wsman ./src/util/wsman.c ./src/lib/init.c )
+target_link_libraries ( wsman wslib ${CMAKE_DL_LIBS} )
 
 function( Kid name file extrasrc extralib )
   message ( STATUS "Configure Kid ${name} ${file}" )
