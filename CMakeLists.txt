@@ -71,7 +71,7 @@ set ( WSSRC src/util/waterslide.c )
 add_library ( wslib SHARED ${WSLIBSRC} )
 add_executable ( ws ${WSSRC} )
 
-target_link_libraries ( ws ${PROTOBUF_LIBRARIES} ${ZLIB_LIBRARIES} wslib )
+target_link_libraries ( ws ${PROTOBUF_LIBRARIES} ${ZLIB_LIBRARIES} wslib ${CMAKE_DL_LIBS} )
 target_link_libraries ( wslib ${PROTOBUF_LIBRARIES} ${ZLIB_LIBRARIES} )
 
 set_property ( TARGET ws PROPERTY CXX_STANDARD 11 )
@@ -101,8 +101,8 @@ if ( HIREDIS_FOUND )
   Kids ( redis )
 endif ( HIREDIS_FOUND )
 
-Kid ( proto_in "src/procs/proc_wsproto_in.cc" ${WS_PROTO} ${WSPROTO_LIB} )
-Kid ( proto_out "src/procs/proc_wsproto_out.cc" ${WS_PROTO} ${WSPROTO_LIB} )
+Kid ( proto_in "src/procs/proc_wsproto_in.cc" "${WS_PROTO}" "${WSPROTO_LIB}" )
+Kid ( proto_out "src/procs/proc_wsproto_out.cc" "${WS_PROTO}" "${WSPROTO_LIB}" )
 
 #todo add RE2
 #Kid ( re2 "src/procs/proc_re2.cc" ${WS_PROTO} "" )
