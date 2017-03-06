@@ -3,6 +3,8 @@
 /waterslide-parallel
 /wsalias
 /wsman
+/bin/**
+/procs/**
 /src/util/waterslide
 /src/util/waterslide-parallel
 /src/util/wsalias

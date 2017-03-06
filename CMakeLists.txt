@@ -1,14 +1,26 @@
 project ( Waterslide C CXX )
 cmake_minimum_required ( VERSION 3.1 )
+
+## Waterslide build version
+set ( WS_VERSION_MAJOR 1 )
+set ( WS_VERSION_MINOR 0 )
+set ( WS_VERSION_PATCH 1 )
+set ( CLIENT_VERSION ${WS_VERSION_MAJOR}.${WS_VERSION_MINOR}.${WS_VERSION_PATCH} )
+
+set ( SUBMODULES ${CMAKE_CURRENT_LIST_DIR}/submodules )
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 message (STATUS "module path ${CMAKE_MODULE_PATH}")
+
 include ( FindProtobuf )
+
 find_package ( Threads REQUIRED )
 find_package ( Protobuf REQUIRED )
 find_package ( BISON REQUIRED )
 find_package ( FLEX REQUIRED )
 find_package ( ZLIB REQUIRED )
 find_package ( HiRedis )
+find_package ( Paho )
 
 set ( CMAKE_C_STANDARD 99 )
 
@@ -16,14 +28,23 @@ if ( UNIX )
   add_definitions ( -D__STDC_FORMAT_MACROS )
 endif ( UNIX )
 
-option( DEBUG "Debug build" OFF )
 set ( CMAKE_C_STANDARD 99 )
+
+message ( STATUS "Build Type ${CMAKE_BUILD_TYPE}" )
+option ( DEBUG "Debug build" OFF )
 if ( DEBUG )
   add_definitions ( -DDEBUG )
-  message ( STATUS "Debug build" )
+  set ( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g2" )
+  set ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g2" )
+  message ( STATUS "Debug info build" )
 else ( DEBUG )
-  message ( STATUS "Release build" )
+  message ( STATUS "No debug info build" )
 endif ( DEBUG )
+
+option ( HUGETUPLE "Huge Tuple" OFF )
+if ( HUGETUPLE )
+  add_definitions ( -DHUGETUPLE )
+endif ( HUGETUPLE )
 
 include_directories ( SYSTEM src src/include src/util src/procs/protobuf src/lib )
 include_directories ( ${PROTOBUF_INCLUDE_DIRS} )
@@ -81,6 +102,13 @@ target_link_libraries ( wsman wslib ${CMAKE_DL_LIBS} )
 
 add_executable ( wsalias ./src/util/wsalias.c ./src/lib/init.c )
 target_link_libraries ( wsalias wslib ${CMAKE_DL_LIBS} )
+
+set_target_properties ( ws wslib wsman wsalias
+    PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/../bin"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/../bin"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/../bin"
+)
 
 function( Kid name file extrasrc extralib )
   message ( STATUS "Configure Kid ${name} ${file}" )
@@ -175,3 +203,19 @@ Kids (
   top
   uniq
 )
+
+option( DOCS "Latex documents build" OFF )
+if ( DOCS )
+  message ( STATUS "Latex documents build" )
+  find_package ( LATEX )
+  if ( LATEX_FOUND )
+    include ( UseLatex )
+    add_latex_document ( doc/users_guide/waterslide_users_guide.tex FORCE_PDF )
+    add_latex_document ( doc/developer/waterslide_programming_guide.tex FORCE_PDF )
+    add_latex_document ( doc/developer/waterslide_refsheet.tex FORCE_PDF )
+  else ( LATEX_FOUND )
+    message ( STATUS "Documents not built. No latex found." )
+  endif ( LATEX_FOUND )
+else ( DOCS )
+  message ( STATUS "No Latex documents build" )
+endif ( DOCS )
