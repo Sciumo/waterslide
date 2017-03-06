@@ -692,6 +692,7 @@ FILE * sysutil_config_fopen(const char * fname, const char * opts) {
           while ( p < MAX_PATH_COUNT && sysutil_pConfigPaths[p] ) {
                snprintf(buf, PATH_MAX, "%s/%s",
                         sysutil_pConfigPaths[p++], fname);
+               dprint("sysutil_config_fopen exist? %s", buf );
                if (sysutil_file_exists(buf)) {
                     retval = fopen(buf, opts);
                     return retval;
